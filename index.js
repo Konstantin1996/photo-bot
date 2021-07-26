@@ -12,6 +12,26 @@ import {
 import { questionsRetusher } from './questions.js';
 import { token } from './config.js';
 import EventEmitter from 'events';
+import express from 'express';
+
+console.log(9532953295932);
+
+const PORT = process.env.PORT || 8666; 
+const url = `https://0.0.0.0:${PORT}/`;
+const bot = new TelegramApi(token);
+bot.setWebHook(`${url}/photobot${token}`);
+
+const app = express();
+app.use(express.json());
+
+app.listen(PORT, () => {
+  console.log(`Express is listening on port ${PORT}`);
+})
+
+app.post(`/photobot${token}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
 
 let questionsQueue = null;
 let passedQuestions = [];
@@ -20,6 +40,13 @@ let ANSWERS_HISTORY = [];
 let projectIndexes = [];
 
 let isUserEnteredNumOfProjects = false;
+
+// const PHOTO_TYPES_REGEXP = new RegExp(/(\da)|(\dg)|(\dr)|(\dl)/gi);
+const PHOTO_TYPE_G_REGEXP = '\\dg';
+const PHOTO_TYPE_A_REGEXP = '\\da';
+const PHOTO_TYPE_R_REGEXP = '\\dr';
+const PHOTO_TYPE_L_REGEXP = '\\dl';
+const PHOTO_TYPES_REGEXP = new RegExp(`(${PHOTO_TYPE_G_REGEXP})|(${PHOTO_TYPE_A_REGEXP})|(${PHOTO_TYPE_R_REGEXP})|(${PHOTO_TYPE_L_REGEXP})`, 'gi');
 
 const G_VALUE = 1;
 const A_VALUE = 0.5;
@@ -35,9 +62,8 @@ const SURVEY_RETUSHER_RESULTS = {
   'photo_typeA': 0,
   'photo_typeR': 0,
   'photo_typeLS': 0,
-}
+};
 
-const bot = new TelegramApi(token, { polling: true });
 
 bot.on('message', async (msg, metadata) => {
   const chatId = msg.chat.id;
@@ -168,8 +194,19 @@ function saveResult(questions, answers) {
 }
 
 function processResults(results) {
-  const REG_PHOTO_TYPE_A = new RegExp(/\da/i)
+  const { project_photo_types } = results;
   console.log('processing begin',  results);
+
+  project_photo_types.forEach((typesStr) => {
+    let overlap = typesStr.match(PHOTO_TYPES_REGEXP).map((type) => type.toLowerCase());
+
+    SURVEY_RETUSHER_RESULTS['photo_typeG'] =+ Number(overlap.match(PHOTO_TYPE_G_REGEXP).replace(/\D/, ''));
+    SURVEY_RETUSHER_RESULTS['photo_typeA'] =+ Number(overlap.match(PHOTO_TYPE_A_REGEXP).replace(/\D/, ''));
+    SURVEY_RETUSHER_RESULTS['photo_typeR'] =+ Number(overlap.match(PHOTO_TYPE_R_REGEXP).replace(/\D/, ''));
+    SURVEY_RETUSHER_RESULTS['photo_typeLS'] =+ Number(overlap.match(PHOTO_TYPE_LS_REGEXP).replace(/\D/, ''));
+  });
+
+  console.log('proccess end', SURVEY_RETUSHER_RESULTS);
 }
 
 function resetData() {
