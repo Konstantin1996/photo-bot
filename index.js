@@ -14,23 +14,33 @@ import { token } from './config.js';
 import EventEmitter from 'events';
 import express from 'express';
 
-console.log(9532953295932);
+const PORT = process.env.PORT || 8080; 
+const url = `${process.env.APP_URL}`;
+const options = {
+  webHook: {
+    port: process.env.PORT
+  }
+}
+const bot = new TelegramApi(token, options);
 
-const PORT = process.env.PORT || 8666; 
-const url = `https://0.0.0.0:${PORT}/`;
-const bot = new TelegramApi(token);
+console.log(PORT);
+console.log(url);
+console.log(token);
+
 bot.setWebHook(`${url}/photobot${token}`);
+
+const webhookInfo = await bot.getWebHookInfo();
+console.log(webhookInfo);
 
 const app = express();
 app.use(express.json());
 
 app.listen(PORT, () => {
   console.log(`Express is listening on port ${PORT}`);
-})
+});
 
-app.post(`/photobot${token}`, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
+app.post(`${url}/photobot${token}`, (req, res) => {
+  console.log('WEBHOOK');
 });
 
 let questionsQueue = null;
@@ -65,7 +75,12 @@ const SURVEY_RETUSHER_RESULTS = {
 };
 
 
+bot.on("webhook_error", (err) => {
+  console.log(err);
+});
+
 bot.on('message', async (msg, metadata) => {
+  console.log('HEROKU')
   const chatId = msg.chat.id;
   const text = msg.text;
   const name = msg.chat.first_name || msg.chat.username;
